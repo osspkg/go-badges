@@ -1,11 +1,5 @@
 package badges
 
-import (
-	"sync"
-)
-
-var modelPool = sync.Pool{New: func() interface{} { return &model{} }}
-
 type model struct {
 	FullW, TitleW, TextW int
 	TitleX, TextX        int
