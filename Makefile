@@ -1,25 +1,31 @@
-TOOLS_BIN=$(shell pwd)/.tools
 
+.PHONY: install
 install:
-	go mod download
-	rm -rf $(TOOLS_BIN)
-	mkdir -p $(TOOLS_BIN)
-	GO111MODULE=off GOBIN=$(TOOLS_BIN) go get golang.org/x/tools/cmd/cover
-	GO111MODULE=off GOBIN=$(TOOLS_BIN) go get github.com/mattn/goveralls
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(TOOLS_BIN) v1.38.0
-	
+	go install github.com/osspkg/devtool@latest
+
+.PHONY: setup
+setup:
+	devtool setup-lib
+
+.PHONY: lint
 lint:
-	$(TOOLS_BIN)/golangci-lint -v run ./...
+	devtool lint
 
-generate:
-	go generate -v ./...
+.PHONY: license
+license:
+	devtool license
 
+.PHONY: build
 build:
-	go build -race -v ./...
+	devtool build --arch=amd64
 
+.PHONY: tests
 tests:
-	go test -race -v ./...
+	devtool test
 
-pre-commite: generate lint tests
+.PHONY: pre-commite
+pre-commite: setup lint build tests
 
-ci: install build lint tests
+.PHONY: ci
+ci: install setup lint build tests
+

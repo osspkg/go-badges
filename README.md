@@ -1,13 +1,13 @@
 # go-badges
 
-[![Release](https://img.shields.io/github/release/deweppro/go-badges.svg?style=flat-square)](https://github.com/deweppro/go-badges/releases/latest)
-[![Go Report Card](https://goreportcard.com/badge/github.com/deweppro/go-badges)](https://goreportcard.com/report/github.com/deweppro/go-badges)
-[![CI](https://github.com/deweppro/go-badges/actions/workflows/ci.yml/badge.svg)](https://github.com/deweppro/go-badges/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/release/osspkg/go-badges.svg?style=flat-square)](https://github.com/osspkg/go-badges/releases/latest)
+[![Go Report Card](https://goreportcard.com/badge/github.com/osspkg/go-badges)](https://goreportcard.com/report/github.com/osspkg/go-badges)
+[![CI](https://github.com/osspkg/go-badges/actions/workflows/ci.yml/badge.svg)](https://github.com/osspkg/go-badges/actions/workflows/ci.yml)
 
 ## Install
 
 ```sh
-go get -u github.com/deweppro/go-badges
+go get -u github.com/osspkg/go-badges
 ```
 
 ## Colors
@@ -30,7 +30,7 @@ package main
 import (
 	"net/http"
 
-	"github.com/deweppro/go-badges"
+	"github.com/osspkg/go-badges"
 )
 
 func main() {
