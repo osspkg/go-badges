@@ -1,3 +1,8 @@
+/*
+ *  Copyright (c) 2022-2023 Mikhail Knyazhev <markus621@yandex.ru>. All rights reserved.
+ *  Use of this source code is governed by a BSD 3-Clause license that can be found in the LICENSE file.
+ */
+
 package badges
 
 import (
@@ -101,12 +106,12 @@ func (v *Badges) getFace(call func(m font.Face) error) error {
 	return err
 }
 
-//Write generate badge and write it to io.Writer
+// Write generate badge and write it to io.Writer
 func (v *Badges) Write(w io.Writer, color Color, title, data string) error {
 	return v.generate(w, color, title, data)
 }
 
-//WriteResponse generate badge and write it to http.Response
+// WriteResponse generate badge and write it to http.Response
 func (v *Badges) WriteResponse(w http.ResponseWriter, color Color, title, data string) error {
 	w.Header().Set("Content-Type", "image/svg+xml; charset=utf-8")
 	w.Header().Set("Cache-Control", "max-age=86400, public")
