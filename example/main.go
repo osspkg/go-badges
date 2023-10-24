@@ -8,7 +8,7 @@ package main
 import (
 	"net/http"
 
-	"github.com/osspkg/go-badges"
+	"go.osspkg.com/badges"
 )
 
 func main() {

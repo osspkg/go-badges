@@ -7,7 +7,7 @@
 ## Install
 
 ```sh
-go get -u github.com/osspkg/go-badges
+go get -u go.osspkg.com/badges
 ```
 
 ## Colors
@@ -30,7 +30,7 @@ package main
 import (
 	"net/http"
 
-	"github.com/osspkg/go-badges"
+	"go.osspkg.com/badges"
 )
 
 func main() {
