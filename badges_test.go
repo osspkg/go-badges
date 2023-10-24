@@ -9,7 +9,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/osspkg/go-badges"
+	"go.osspkg.com/badges"
 )
 
 func TestBadges(t *testing.T) {
