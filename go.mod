@@ -1,7 +1,7 @@
 module go.osspkg.com/badges
 
-go 1.17
+go 1.18
 
-require golang.org/x/image v0.13.0
+require golang.org/x/image v0.14.0
 
-require golang.org/x/text v0.13.0 // indirect
+require golang.org/x/text v0.14.0 // indirect
