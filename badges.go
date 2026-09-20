@@ -1,12 +1,14 @@
 /*
- *  Copyright (c) 2022-2024 Mikhail Knyazhev <markus621@yandex.ru>. All rights reserved.
+ *  Copyright (c) 2022-2026 Mikhail Knyazhev <markus621@yandex.com>. All rights reserved.
  *  Use of this source code is governed by a BSD 3-Clause license that can be found in the LICENSE file.
  */
 
+// Package badges generates SVG badges.
 package badges
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -17,6 +19,21 @@ import (
 	"golang.org/x/image/font/opentype"
 )
 
+const (
+	maxFieldBytes        = 256
+	defaultFontSize      = 9
+	defaultFontDPI       = 96
+	badgeTextPadding     = 2
+	badgeTextLengthExtra = 14
+	badgeTitleXOffset    = 1
+	badgeSeparatorOffset = 3
+	badgeCenterDivisor   = 2
+)
+
+// ErrFieldTooLong indicates that a badge field exceeds the supported size.
+var ErrFieldTooLong = errors.New("badges: field is too long")
+
+// Badges generates SVG badges.
 type Badges struct {
 	faces    sync.Pool
 	models   sync.Pool
@@ -24,6 +41,7 @@ type Badges struct {
 	font     *opentype.Font
 }
 
+// New creates a badge generator with the embedded font and template.
 func New() (*Badges, error) {
 	var err error
 	vv := &Badges{}
@@ -42,9 +60,10 @@ func New() (*Badges, error) {
 	return vv, nil
 }
 
-func (v *Badges) defaultTemplate() (err error) {
+func (v *Badges) defaultTemplate() error {
+	var err error
 	v.template, err = template.New("tmpl").Parse(tmpl)
-	return
+	return err
 }
 
 func (v *Badges) defaultFont() error {
@@ -68,9 +87,11 @@ func (v *Badges) getModel(call func(m *model) error) error {
 	if !ok {
 		m = &model{}
 	}
-	err := call(m)
-	v.models.Put(m)
-	return err
+	defer func() {
+		*m = model{}
+		v.models.Put(m)
+	}()
+	return call(m)
 }
 
 type face struct {
@@ -81,8 +102,8 @@ type face struct {
 func (v *Badges) poolFace() {
 	v.faces = sync.Pool{New: func() interface{} {
 		f, err := opentype.NewFace(v.font, &opentype.FaceOptions{
-			Size:    9,
-			DPI:     96,
+			Size:    defaultFontSize,
+			DPI:     defaultFontDPI,
 			Hinting: font.HintingNone,
 		})
 		return &face{
@@ -95,8 +116,7 @@ func (v *Badges) poolFace() {
 func (v *Badges) getFace(call func(m font.Face) error) error {
 	m, ok := v.faces.Get().(*face)
 	if !ok {
-		fmt.Println(m)
-		return fmt.Errorf("badges: cant get font.Face")
+		return errors.New("badges: can't get font.Face")
 	}
 	if m.Err != nil {
 		return fmt.Errorf("badges: cant get font.Face: %w", m.Err)
@@ -113,6 +133,9 @@ func (v *Badges) Write(w io.Writer, color Color, title, data string) error {
 
 // WriteResponse generate badge and write it to http.Response
 func (v *Badges) WriteResponse(w http.ResponseWriter, color Color, title, data string) error {
+	if err := validate(color, title, data); err != nil {
+		return err
+	}
 	w.Header().Set("Content-Type", "image/svg+xml; charset=utf-8")
 	w.Header().Set("Cache-Control", "max-age=86400, public")
 	w.WriteHeader(http.StatusOK)
@@ -120,10 +143,13 @@ func (v *Badges) WriteResponse(w http.ResponseWriter, color Color, title, data s
 }
 
 func (v *Badges) generate(w io.Writer, color Color, title, data string) error {
+	if err := validate(color, title, data); err != nil {
+		return err
+	}
 	return v.getModel(func(m *model) error {
 		if err := v.getFace(func(ff font.Face) error {
-			m.TitleW, _ = bound(ff, title)
-			m.TextW, _ = bound(ff, data)
+			m.TitleW = bound(ff, title)
+			m.TextW = bound(ff, data)
 			return nil
 		}); err != nil {
 			return err
@@ -136,22 +162,41 @@ func (v *Badges) generate(w io.Writer, color Color, title, data string) error {
 		m.DataBG = color.DataBG
 		m.DataFont = color.DataFont
 
-		m.TitleL, m.TitleW = m.TitleW+2, m.TitleW+14
-		m.TextL, m.TextW = m.TextW+2, m.TextW+14
-		m.TitleX = m.TitleW/2 + 1
-		m.TextX = m.TitleW + m.TextW/2 - 1
-		m.D1, m.D2 = m.TitleW-3, m.TitleW
+		m.TitleL, m.TitleW = m.TitleW+badgeTextPadding, m.TitleW+badgeTextLengthExtra
+		m.TextL, m.TextW = m.TextW+badgeTextPadding, m.TextW+badgeTextLengthExtra
+		m.TitleX = m.TitleW/badgeCenterDivisor + badgeTitleXOffset
+		m.TextX = m.TitleW + m.TextW/badgeCenterDivisor - badgeTitleXOffset
+		m.D1, m.D2 = m.TitleW-badgeSeparatorOffset, m.TitleW
 		m.FullW = m.TitleW + m.TextW
 
 		return v.template.ExecuteTemplate(w, "tmpl", m)
 	})
 }
 
-func bound(face font.Face, data string) (int, int) {
+func validate(color Color, title, data string) error {
+	fields := [...]struct {
+		name  string
+		value string
+	}{
+		{name: "title", value: title},
+		{name: "data", value: data},
+		{name: "title background", value: color.TitleBG},
+		{name: "title font", value: color.TitleFont},
+		{name: "data background", value: color.DataBG},
+		{name: "data font", value: color.DataFont},
+	}
+	for _, field := range fields {
+		if len(field.value) > maxFieldBytes {
+			return fmt.Errorf("%w: %s exceeds %d bytes", ErrFieldTooLong, field.name, maxFieldBytes)
+		}
+	}
+	return nil
+}
+
+func bound(face font.Face, data string) int {
 	b, _ := font.BoundString(face, data)
 
-	with := b.Max.X.Round() - b.Min.X.Round()
-	height := b.Max.Y.Round() - b.Min.Y.Round()
+	width := b.Max.X.Round() - b.Min.X.Round()
 
-	return with, height
+	return width
 }
