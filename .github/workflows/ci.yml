@@ -1,11 +1,10 @@
-
 name: CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 jobs:
   build:
@@ -14,7 +13,7 @@ jobs:
       contents: read
     strategy:
       matrix:
-        go: [ '1.25', '1.26' ]
+        go: ["1.26"]
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
