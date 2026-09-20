@@ -7,6 +7,9 @@ package badges_test
 
 import (
 	"bytes"
+	"errors"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"go.osspkg.com/badges"
@@ -31,6 +34,25 @@ func TestBadges(t *testing.T) {
 	}
 }
 
+func TestBadgesRejectsOversizedField(t *testing.T) {
+	bb, err := badges.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	response := httptest.NewRecorder()
+	err = bb.WriteResponse(response, badges.ColorInfo, strings.Repeat("x", 257), "456")
+	if !errors.Is(err, badges.ErrFieldTooLong) {
+		t.Fatalf("expected ErrFieldTooLong, got %v", err)
+	}
+	if response.Header().Get("Content-Type") != "" {
+		t.Fatal("response headers were written for invalid input")
+	}
+	if response.Body.Len() != 0 {
+		t.Fatal("response body was written for invalid input")
+	}
+}
+
 func BenchmarkBadges(b *testing.B) {
 	mock := &mockNilWriter{}
 	bb, err := badges.New()
@@ -43,13 +65,11 @@ func BenchmarkBadges(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			err = bb.Write(mock, badges.ColorInfo, "123", "456")
-			if err != nil {
+			if err := bb.Write(mock, badges.ColorInfo, "123", "456"); err != nil {
 				b.Fatal(err)
 			}
 		}
 	})
-
 }
 
 type mockNilWriter struct{}
