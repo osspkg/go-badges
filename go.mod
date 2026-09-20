@@ -1,6 +1,6 @@
 module go.osspkg.com/badges
 
-go 1.18
+go 1.26
 
 require golang.org/x/image v0.14.0
 
